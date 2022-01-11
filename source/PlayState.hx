@@ -3,6 +3,7 @@ package;
 import flixel.FlxG;
 import flixel.FlxState;
 import flixel.math.FlxAngle;
+import flixel.math.FlxMath;
 import objects.Line;
 
 class PlayState extends FlxState
@@ -28,81 +29,52 @@ class PlayState extends FlxState
 
 	function arm()
 	{
-		// *-----l1----*-----l2-----* <-- lenght of bone1 (l1) and bone2 (l2)
-		//    p1 -----  p2 --- p3
-		// shoulder - elbow - arm ---> target
+		//		A
+		//		|\
+		//		| \ b
+		//		|  \
+		//		|   \
+		//	   c|   / C
+		//		|  /
+		//		| / a
+		//		|/
+		//		B
+
+		// A-----b----C-----a-----B <-- lenght of bone1 (b) and bone2 (a)
+		// a: the distance between C and B
+		// b: the distance between A and C
+		// c: the distance between A and B
 
 		// bones length
-		var l1 = 150;
-		var l2 = l1;
+		var b = 120;
+		var a = 120;
 		// the anchor point
-		var p1x = x1;
-		var p1y = y1;
+		var Ax = x1;
+		var Ay = y1;
 		// the mouse point
 		var targetx = FlxG.mouse.screenX;
 		var targety = FlxG.mouse.screenY;
 
-		// get the distance betwwen p1 - target, constrain base on limb length
-		var p1TargetDist = Math.min(Math.round(pointDistance(p1x, p1y, targetx, targety) + (l1 / 12)), l1 + l2);
+		// the distance between point A and B
+		var c = Math.min(Math.round(FlxMath.vectorLength(Ax - targetx, Ay - targety) + (b / 12)), a + b);
 
-		// get the angle betwwen p1 - target
-		var p1TargetDir = Math.round(pointDirection(targetx, targety, p1x, p1y));
+		// The angle of A
+		var alpha = Math.round(FlxAngle.asDegrees(Math.atan2(targety - Ay, targetx - Ax)));
 
-		// get the hand joint point
-		var p3x = p1x - p1TargetDist * Math.cos(FlxAngle.asRadians(p1TargetDir - 90));
-		var p3y = p1y + p1TargetDist * Math.sin(FlxAngle.asRadians(p1TargetDir - 90));
+		// The position of point B
+		var Bx = Ax + c * Math.cos(FlxAngle.asRadians(alpha));
+		var By = Ay + c * Math.sin(FlxAngle.asRadians(alpha));
 
-		// get the distance betwwen p1 - p3
-		var p1p3Dist = Math.round(pointDistance(p3x, p3y, p1x, p1y));
-		var phi = Math.acos((p1p3Dist * p1p3Dist - l1 * l1 - l2 * l2) / -(2 * l1 * l2));
-		var omega = Math.asin(l2 * Math.sin(phi) / p1p3Dist);
+		// The angle of point C
+		var beta = FlxAngle.asDegrees(Math.acos(Math.min(1, Math.max(-1, b * b + c * c - a * a) / (2 * b * c))));
+		var gama = alpha - beta;
 
-		// get the angle betwwen p1 - p3
-		var p1p3Dir = Math.round(pointDirection(p3x, p3y, p1x, p1y));
-		// get the angle betwwen p1 - p2
-		var p1p2Dir = p1p3Dir - FlxAngle.asDegrees(omega);
-
-		// get the elbow joint point
-		var p2x = p1x - l1 * Math.cos(FlxAngle.asRadians(p1p2Dir - 90));
-		var p2y = p1y + l1 * Math.sin(FlxAngle.asRadians(p1p2Dir - 90));
+		// The position of point C
+		var Cx = Ax + b * Math.cos(FlxAngle.asRadians(gama));
+		var Cy = Ay + b * Math.sin(FlxAngle.asRadians(gama));
 
 		// draw it!
-		line.drawIt(p1x, p1y, p2x, p2y);
-		line2.drawIt(p2x, p2y, p3x, p3y);
-
-		// extra angles for later use
-		// shouler angle
-		var p1p3Dir = p1p3Dist - FlxAngle.asDegrees(omega);
-		// elbow angle
-		var p2p3Dir = p1p3Dir + FlxAngle.asDegrees(phi);
-		var theta = Math.PI - phi;
-	}
-
-	// extra math
-
-	/**
-	 * Calculate the distance between point [x1][y1] and [x2][y2]
-	 * @param x1 
-	 * @param y1 
-	 * @param x2 
-	 * @param y2 
-	 * @return Float
-	 */
-	function pointDistance(x1:Float, y1:Float, x2:Float, y2:Float):Float
-	{
-		return Math.sqrt(Math.pow(y2 - y1, 2) + Math.pow(x2 - x1, 2));
-	}
-
-	/**Calculate the angle of the line that contains the points [x1][y1] and [x2][y2]
-	 * [Description]
-	 * @param x1 
-	 * @param y1 
-	 * @param x2 
-	 * @param y2 
-	 * @return Float
-	 */
-	function pointDirection(x1:Float, y1:Float, x2:Float, y2:Float):Float
-	{
-		return FlxAngle.asDegrees(Math.atan2(x2 - x1, y2 - y1));
+		line.drawIt(Ax, Ay, Cx, Cy);
+		line2.drawIt(Cx, Cy, Bx, By);
 	}
 }
